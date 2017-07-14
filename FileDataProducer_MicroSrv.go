@@ -1,3 +1,13 @@
+/*
+Purpose:
+	Service to read data from flat files and deliver it to client service.
+	Files in multiple paths can be read concurrently.
+Usage:
+	<Service Name> <Name of file containing paths>
+Author:
+	Ernesto Rodriguez
+	aspacsa@gmail.com
+*/
 package main
 
 import (
@@ -20,6 +30,10 @@ var (
 	wg      sync.WaitGroup
 )
 
+/*
+	First function to be called.
+	Used for initialization only.
+*/
 func init() {
 	fmt.Println("Initializing...")
 
@@ -29,6 +43,9 @@ func init() {
 	Error = log.New(os.Stderr, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
 }
 
+/*
+	Entry point of the service.
+*/
 func main() {
 	progName := os.Args[0]
 	fmt.Printf("Micro Service: %s\n", progName)
@@ -36,7 +53,7 @@ func main() {
 	var fileName string
 
 	if totArgs > 1 {
-		fileName = os.Args[1]
+		fileName = os.Args[1] //Get name of paths file
 		if fileName == "" {
 			log.Fatalln("Must specify the name of file containing paths.")
 		}
@@ -47,30 +64,33 @@ func main() {
 	var paths []string
 	paths = read(fileName)
 
-	cpus := runtime.NumCPU()
+	cpus := runtime.NumCPU() //Get numbers of CPUs in current machine
 	fmt.Printf("Total CPUs: %d\n", cpus)
-	runtime.GOMAXPROCS(cpus)
-	wg.Add(len(paths))
+	runtime.GOMAXPROCS(cpus) //Set numbers of CPUs that can be executing
+	wg.Add(len(paths))       //Set numbers of routines running
 	fmt.Println("Processing the following path(s):")
-	for _, path := range paths {
-		go process(path)
+	for _, path := range paths { //Iterate paths in file
+		go process(path) //For each path call process
 	}
-	wg.Wait()
+	wg.Wait() //Wait here until all routines report completion
 
 	fmt.Println("Finished.")
 }
 
+/*
+	Read data lines from each flat file in paths specified.
+*/
 func read(fileName string) (lines []string) {
 	file, err := os.Open(fileName)
 	if err != nil {
 		log.Fatalln("Failed to open file: ", err)
 	}
 
-	mylines := make([]string, 1)
+	mylines := make([]string, 1) //Create slice with minimum 1 to hold lines
 	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if line != "" {
+	for scanner.Scan() { //Read each line of the file
+		line := scanner.Text() //Get line
+		if line != "" {        //If line is not empty then add to collection
 			mylines = append(mylines, line)
 		}
 	}
@@ -83,6 +103,11 @@ func read(fileName string) (lines []string) {
 	return mylines
 }
 
+/*
+	Here we determine if the path to file is valid,
+	if valid then we read all files in directory and
+	read the lines in each one of them.
+*/
 func process(spath string) {
 	defer wg.Done()
 
