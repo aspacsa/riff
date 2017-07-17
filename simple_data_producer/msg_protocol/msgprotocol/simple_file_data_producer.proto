@@ -1,0 +1,17 @@
+
+syntax = "proto3";
+
+service SimpleFileDataProducer {
+   //Obtain the file data
+   rpc GetFileData(DataFile) returns (FileData) {}
+}
+
+message DataFile {
+   int32 request_id = 1;
+   string file_name = 2;
+} 
+
+message FileData {
+    string data = 1;
+    int32 request_id = 2;
+}
